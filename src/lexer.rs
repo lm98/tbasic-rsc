@@ -11,8 +11,9 @@ pub enum Token {
     Divide,
     Lparen,
     Rparen,
-    ID(String),
+    Id(String),
     Assign,
+    If,
 }
 
 pub struct Lexer<'a> {
@@ -51,10 +52,32 @@ impl<'a> Lexer<'a> {
                     }
                     Some(Number(total))
                 },
+                'i' => {
+                    match self.lookahead() {
+                        None => None,
+                        Some('f') => {
+                            // consume the 'f'
+                            self.input.next();
+                            if self.lookahead_alphabetic() {
+                                // read and consume the rest of the string
+                                let mut str = self.read_string();
+                                str.insert_str(0, "if");
+                                Some(Id(str))
+                            } else {
+                                Some(If)
+                            }
+                        },
+                        _ => {
+                            let mut str = self.read_string();
+                            str.insert(0, 'i');
+                            Some(Id(str))
+                        }
+                    }
+                },
                 'a'..='z' => {
                     let mut id = String::new();
                     id.push(char);
-                    while let Some(ch) = self.input.clone().next() {
+                    while let Some(ch) = self.lookahead() {
                         if ch.is_alphabetic() {
                             id.push(ch);
                             self.input.next();
@@ -62,7 +85,7 @@ impl<'a> Lexer<'a> {
                             break
                         }
                     }
-                    Some(ID(id))
+                    Some(Id(id))
                 },
                 '+' => Some(Plus),
                 '-' => Some(Minus),
@@ -77,6 +100,31 @@ impl<'a> Lexer<'a> {
         }
         None
     }
+
+    fn lookahead(&self) -> Option<char> {
+        self.input.clone().next()
+    }
+
+    fn lookahead_alphabetic(&self) -> bool {
+        if let Some(ch) = self.lookahead() {
+            ch.is_alphabetic()
+        } else {
+            false
+        }
+    }
+
+    fn read_string(&mut self) -> String {
+        let mut str = String::new();
+        while let Some(char) = self.lookahead() {
+            if char.is_alphabetic() {
+                str.push(char);
+                self.input.next();
+            } else {
+                break;
+            }
+        }
+        str
+    }
 }
 
 #[cfg(test)]
@@ -87,7 +135,6 @@ mod test {
     fn test_arithmetic() {
         let mut lexer = Lexer::new("10 +2*(3-4)/5");
         let tokens = lexer.tokenize();
-        println!("{}", lexer.position);
         assert_eq!(
             tokens,
             vec![
@@ -113,7 +160,33 @@ mod test {
         assert_eq!(
             tokens,
             vec![
-                Token::ID("myVar".to_string()),
+                Token::Id("myVar".to_string()),
+                Token::Assign,
+                Token::Number(10),
+            ]
+        );
+    }
+
+    #[test]
+    fn test_if() {
+        let mut lexer = Lexer::new("if x = 10");
+        let tokens = lexer.tokenize();
+        assert_eq!(
+            tokens,
+            vec![
+                Token::If,
+                Token::Id("x".to_string()),
+                Token::Assign,
+                Token::Number(10),
+            ]
+        );
+
+        let mut lexer = Lexer::new("ifx = 10");
+        let tokens = lexer.tokenize();
+        assert_eq!(
+            tokens,
+            vec![
+                Token::Id("ifx".to_string()),
                 Token::Assign,
                 Token::Number(10),
             ]
