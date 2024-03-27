@@ -84,7 +84,7 @@ impl<'a> Lexer<'a> {
     fn read_string(&mut self) -> String {
         let mut str = String::new();
         while let Some(char) = self.lookahead() {
-            if char.is_alphabetic() {
+            if char.is_alphanumeric() {
                 str.push(char);
                 self.input.next();
             } else {
@@ -131,6 +131,17 @@ mod test {
                 Token::Id("myVar".to_string()),
                 Token::Assign,
                 Token::Number(10),
+            ]
+        );
+
+        let mut lexer = Lexer::new("myVar1 = 100");
+        let tokens = lexer.tokenize();
+        assert_eq!(
+            tokens,
+            vec![
+                Token::Id("myVar1".to_string()),
+                Token::Assign,
+                Token::Number(100),
             ]
         );
     }
