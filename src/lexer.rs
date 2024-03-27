@@ -52,40 +52,16 @@ impl<'a> Lexer<'a> {
                     }
                     Some(Number(total))
                 },
-                'i' => {
-                    match self.lookahead() {
-                        None => None,
-                        Some('f') => {
-                            // consume the 'f'
-                            self.input.next();
-                            if self.lookahead_alphabetic() {
-                                // read and consume the rest of the string
-                                let mut str = self.read_string();
-                                str.insert_str(0, "if");
-                                Some(Id(str))
-                            } else {
-                                Some(If)
-                            }
-                        },
-                        _ => {
-                            let mut str = self.read_string();
-                            str.insert(0, 'i');
-                            Some(Id(str))
-                        }
-                    }
-                },
                 'a'..='z' => {
-                    let mut id = String::new();
-                    id.push(char);
-                    while let Some(ch) = self.lookahead() {
-                        if ch.is_alphabetic() {
-                            id.push(ch);
-                            self.input.next();
-                        } else {
-                            break
-                        }
+                    let mut id = self.read_string();
+                    id.insert(0, char);
+
+                    // Check if the id is a keyword
+                    if id == "if" {
+                        Some(If)
+                    } else {
+                        Some(Id(id))
                     }
-                    Some(Id(id))
                 },
                 '+' => Some(Plus),
                 '-' => Some(Minus),
@@ -103,14 +79,6 @@ impl<'a> Lexer<'a> {
 
     fn lookahead(&self) -> Option<char> {
         self.input.clone().next()
-    }
-
-    fn lookahead_alphabetic(&self) -> bool {
-        if let Some(ch) = self.lookahead() {
-            ch.is_alphabetic()
-        } else {
-            false
-        }
     }
 
     fn read_string(&mut self) -> String {
