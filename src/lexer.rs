@@ -14,6 +14,10 @@ pub enum Token {
     Id(String),
     Assign,
     If,
+    Else,
+    CurlyL,
+    CurlyR,
+    Equals,
 }
 
 pub struct Lexer<'a> {
@@ -57,10 +61,10 @@ impl<'a> Lexer<'a> {
                     id.insert(0, char);
 
                     // Check if the id is a keyword
-                    if id == "if" {
-                        Some(If)
-                    } else {
-                        Some(Id(id))
+                    match id.as_str() {
+                        "if" => Some(If),
+                        "else" => Some(Else),
+                        _ => Some(Id(id)),
                     }
                 },
                 '+' => Some(Plus),
@@ -70,7 +74,16 @@ impl<'a> Lexer<'a> {
                 '(' => Some(Lparen),
                 ')' => Some(Rparen),
                 ' ' => self.next_token(),
-                '=' => Some(Assign),
+                '=' => {
+                    if let Some('=') = self.lookahead() {
+                        self.input.next();
+                        Some(Equals)
+                    } else {
+                        Some(Assign)
+                    }
+                },
+                '{' => Some(CurlyL),
+                '}' => Some(CurlyR),
                 _ => None,
             }
         }
@@ -168,6 +181,59 @@ mod test {
                 Token::Id("ifx".to_string()),
                 Token::Assign,
                 Token::Number(10),
+            ]
+        );
+    }
+
+    #[test]
+    fn test_equals() {
+        let mut lexer = Lexer::new("if x == 10");
+        let tokens = lexer.tokenize();
+        assert_eq!(
+            tokens,
+            vec![
+                Token::If,
+                Token::Id("x".to_string()),
+                Token::Equals,
+                Token::Number(10),
+            ]
+        );
+
+        let mut lexer = Lexer::new("x === 10");
+        let tokens = lexer.tokenize();
+        assert_eq!(
+            tokens,
+            vec![
+                Token::Id("x".to_string()),
+                Token::Equals,
+                Token::Assign,
+                Token::Number(10),
+            ]
+        );
+    }
+
+    #[test]
+    fn test_if_else() {
+        let mut lexer = Lexer::new("if x ==10 { y = 20 } else { y = 30 }");
+        let tokens = lexer.tokenize();
+        assert_eq!(
+            tokens,
+            vec![
+                Token::If,
+                Token::Id("x".to_string()),
+                Token::Equals,
+                Token::Number(10),
+                Token::CurlyL,
+                Token::Id("y".to_string()),
+                Token::Assign,
+                Token::Number(20),
+                Token::CurlyR,
+                Token::Else,
+                Token::CurlyL,
+                Token::Id("y".to_string()),
+                Token::Assign,
+                Token::Number(30),
+                Token::CurlyR,
             ]
         );
     }
