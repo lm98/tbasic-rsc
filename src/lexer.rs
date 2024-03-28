@@ -18,6 +18,13 @@ pub enum Token {
     CurlyL,
     CurlyR,
     Equals,
+    SmallerThan,
+    GreaterThan,
+    SmallerEquals,
+    GreaterEquals,
+    Not,
+    And,
+    Or,
 }
 
 pub struct Lexer<'a> {
@@ -84,6 +91,39 @@ impl<'a> Lexer<'a> {
                 },
                 '{' => Some(CurlyL),
                 '}' => Some(CurlyR),
+                '<' => {
+                    if let Some('=') = self.lookahead() {
+                        self.input.next();
+                        Some(SmallerEquals)
+                    } else {
+                        Some(SmallerThan)
+                    }
+                },
+                '>' => {
+                    if let Some('=') = self.lookahead() {
+                        self.input.next();
+                        Some(GreaterEquals)
+                    } else {
+                        Some(GreaterThan)
+                    }
+                },
+                '!' => Some(Not),
+                '&' => {
+                    if let Some('&') = self.lookahead() {
+                        self.input.next();
+                        Some(And)
+                    } else {
+                        None
+                    }
+                },
+                '|' => {
+                    if let Some('|') = self.lookahead() {
+                        self.input.next();
+                        Some(Or)
+                    } else {
+                        None
+                    }
+                },
                 _ => None,
             }
         }
@@ -234,6 +274,29 @@ mod test {
                 Token::Assign,
                 Token::Number(30),
                 Token::CurlyR,
+            ]
+        );
+    }
+
+    #[test]
+    fn test_boolean_logic() {
+        let mut lexer = Lexer::new("if x < 10 && y > 20 || z == 30");
+        let tokens = lexer.tokenize();
+        assert_eq!(
+            tokens,
+            vec![
+                Token::If,
+                Token::Id("x".to_string()),
+                Token::SmallerThan,
+                Token::Number(10),
+                Token::And,
+                Token::Id("y".to_string()),
+                Token::GreaterThan,
+                Token::Number(20),
+                Token::Or,
+                Token::Id("z".to_string()),
+                Token::Equals,
+                Token::Number(30),
             ]
         );
     }
